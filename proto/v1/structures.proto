@@ -1,0 +1,11 @@
+syntax = 'proto3';
+
+package beget.statistics.v1.structures;
+
+// Значение за определенный момент времени
+message StatisticsSet {
+  // Время в формате 2022-11-25 17:00:00
+  string datetime = 1;
+  // Значение
+  float value = 2;
+}

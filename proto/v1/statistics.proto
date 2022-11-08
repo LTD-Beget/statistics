@@ -1,0 +1,280 @@
+syntax = "proto3";
+
+package beget.statistics.v1.statistics;
+import "google/api/annotations.proto";
+import "statistics/proto/v1/structures.proto";
+
+// Сервис получения статистики
+service LoadStatisticsService {
+  // Получить статистику по серверу
+  rpc getServerInfo (GetServerInfoRequest) returns (GetServerInfoResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/serverInfo"
+    };
+  }
+
+  // Получить разную общую статистику нагрузки
+  rpc getGraphInfo (GetGraphRequest) returns (GetGraphResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/graph"
+    };
+  }
+
+  // Получить общую агрегированную статистику нагрузки
+  rpc getGeneralAggregatedStats(GetGeneralAggregatedStatsRequest) returns (GetGeneralAggregatedStatsResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/general"
+    };
+  }
+
+  // Получить общую почасовую статистику нагрузки за определенный день
+  rpc getStatsByDay(GetStatsByDayRequest) returns (GetStatsByDayResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/byDay"
+    };
+  }
+
+  // Получить подробную статистику нагрузки по конкретной базе или сайту
+  rpc getDetailedStats(GetDetailedStatsRequest) returns (GetDetailedStatsResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/details"
+    };
+  }
+}
+
+message GetServerInfoRequest {
+}
+
+message GetServerInfoResponse {
+  // Средняя загрузка на сервере
+  LoadAverage load_average = 1;
+  // Аптайм сервера
+  Uptime uptime = 2;
+  // Информация о сервере
+  Server server = 3;
+  message Server {
+    // Версия апача
+    string server_apache_version = 1;
+    // Версия процессора
+    string server_cpu_name = 2;
+    // Количество оперативной памяти
+    int64 server_memory = 3;
+    // Версия mysql
+    string server_mysql_version = 4;
+    // Имя сервера
+    string server_name = 5;
+    // Версия nginx
+    string server_nginx_version = 6;
+    // Версия perl
+    string server_perl_version = 7;
+    // Версия php
+    string server_php_version = 8;
+    // Версия python
+    string server_python_version = 9;
+  }
+
+  message Uptime {
+    // Количество секунд аптайма
+    int64 total = 1;
+    // Количество секунд в idle статусе
+    int64 idle = 2;
+  }
+
+  message LoadAverage {
+    // Среднее значение нагрузки для 1 минуты
+    float la1 = 1;
+    // Среднее значение нагрузки для 5 минут
+    float la5 = 2;
+    // Среднее значение нагрузки для 15 минут
+    float la10 = 3;
+    // Pid последнего созданного процесса на сервере
+    float last_proc = 4;
+    // Количество запущенных процессов
+    int64 running_proc = 5;
+    // Общее количество процессов
+    int64 total_proc = 6;
+  }
+}
+
+message GetGeneralAggregatedStatsRequest {
+  // Тип статистики
+  repeated StatisticsType type = 1;
+
+  enum StatisticsType {
+    // Нагрузка на mysql бд
+    MYSQL = 0;
+    // Нагрузка на сайты
+    SITE = 1;
+  }
+}
+
+message GetGeneralAggregatedStatsResponse {
+  // Общая агрегированная статистика нагрузки на сайты
+  repeated GeneralSiteStats general_site_stats = 1;
+  // Общая агрегированная статистика нагрузки на mysql
+  repeated GeneralMysqlStats general_mysql_stats = 2;
+
+  message GeneralMysqlStats {
+    // Средняя нагрузка за месяц
+    float cp = 1;
+    // Название базы
+    string name = 2;
+    // Название базы . нужно ли?
+    string id = 3;
+  }
+
+  message GeneralSiteStats {
+    // Средняя нагрузка за месяц
+    float cp = 1;
+    // Название сайта
+    string name = 2;
+    // Id сайта
+    uint64 id = 3;
+  }
+}
+
+message GetGraphRequest {
+  // Тип статистики
+  repeated Type type = 1;
+
+  enum Type {
+    // Средняя нагрузка на сервере
+    AVERAGE_LOAD = 0;
+    // Изменение дискового пространства
+    DISK_QUOTA = 1;
+    // Суммарная нагрузка на сайты
+    SITE_LOAD = 2;
+    // Изменение размера mysql бд
+    MYSQL_SIZE = 3;
+    // Суммарная нагрузка на mysql бд
+    MYSQL_LOAD = 4;
+  }
+}
+
+message GetGraphResponse {
+  // Статистика нагрузки на сервер
+  SiteStat site_stat = 1;
+  // Статистика изменения дисковой квоты
+  DiskQuotaStat disk_quota_stat = 2;
+  // Статистика изменения размера базы данных
+  MysqlSizeStat mysql_size_stat = 3;
+  // Статистика средней нагрузки
+  AverageLoadStat average_load_stat = 4;
+  // Статистика нагрузки на базу данных
+  MysqlLoadStat mysql_load_stat = 5;
+
+  message SiteStat {
+    // Данные по дням за последний месяц
+    repeated structures.StatisticsSet data = 1;
+  }
+
+  message DiskQuotaStat {
+    // Данные по часам за последний месяц
+    repeated structures.StatisticsSet data = 1;
+  }
+
+  message MysqlSizeStat {
+    // Данные по часам за последний месяц
+    repeated structures.StatisticsSet data = 1;
+  }
+
+  message AverageLoadStat {
+    // Данные по часам за последние сутки
+    repeated structures.StatisticsSet data = 1;
+  }
+
+  message MysqlLoadStat {
+    // Данные по дням за последний месяц
+    repeated structures.StatisticsSet data = 1;
+  }
+}
+
+message GetStatsByDayRequest {
+  repeated SearchScope scope = 1;
+
+  message SearchScope {
+    // Тип статистики
+    StatisticType type = 1;
+    // За какой день собрать статистику. Дата в формате Y-m-d
+    // либо количество секунд, прошедших с начала эпохи Unix (1 января 1970 00:00:00 GMT) до текущего времени.
+    string date = 2;
+
+    enum StatisticType {
+      // Нагрузка на mysql бд
+      MYSQL = 0;
+      // Нагрузка на сайты
+      SITE = 1;
+    }
+  }
+}
+
+message GetStatsByDayResponse {
+  // Общая статистика нагрузки на mysql за определенный день
+  MysqlStat mysql_stat = 1;
+  // Общая статистика нагрузки на сайты за определенный день
+  SiteStat site_stat = 2;
+
+  message MysqlStat {
+    // Данные по часам за определенный день
+    repeated structures.StatisticsSet data = 1;
+  }
+
+  message SiteStat {
+    // Данные по часам за определенный день
+    repeated structures.StatisticsSet data = 1;
+  }
+}
+
+message GetDetailedStatsRequest {
+  repeated SearchScope scope = 1;
+
+  message SearchScope {
+    // Тип статистики
+    oneof type {
+      // Нагрузка на базу данных
+      Mysql mysql = 1;
+      // Нагрузка на сайт
+      Site site = 2;
+    }
+
+    message Mysql {
+      // Имя бд
+      string name = 1;
+    }
+
+    message Site {
+      // Идентификатор сайта
+      uint64 id = 1;
+    }
+  }
+}
+
+message GetDetailedStatsResponse {
+  // Подробная статистика нагрузки на mysql
+  MysqlStat mysql_stat = 1;
+  // Подробная статистика нагрузки на сайт
+  SiteStat site_stat = 2;
+
+  message MysqlStat {
+    // Статистика нагрузки на бд за последний месяц по дням
+    repeated structures.StatisticsSet stats_by_days = 1;
+    // Статистика нагрузки на бд за последний месяц по часам
+    repeated structures.StatisticsSet stats_by_hours = 2;
+    // Статистика изменение дискового пространства за последний месяц по дням
+    repeated structures.StatisticsSet size_stats = 3;
+  }
+
+  message SiteStat {
+    // Статистика нагрузки на сайт за последний месяц по дням
+    repeated structures.StatisticsSet stats_by_days = 1;
+    // Статистика нагрузки на бд за последний месяц по часам
+    repeated structures.StatisticsSet stats_by_hours = 2;
+  }
+}
+
+
+
+
+
+
+

@@ -13,80 +13,36 @@ service LoadStatisticsService {
     };
   }
 
+  // Найти статистику
+  rpc findStats(FindStatsRequest) returns (FindStatsResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics"
+    };
+  }
+
   // Получить общую агрегированную статистику нагрузки на сайты
-  rpc findGeneralAggregatedStats(FindGeneralAggregatedStatsRequest) returns (FindGeneralAggregatedStatsResponse) {
+  rpc getGeneralSiteAggregatedStats(GetGeneralSiteAggregatedStatsRequest) returns (GetGeneralSiteAggregatedStatsResponse) {
     option (google.api.http) = {
       get: "/v1/statistics/site/general"
     };
   }
 
   // Получить общую агрегированную статистику нагрузки на mysql базы
-  rpc findGeneralMysqlAggregatedStats(FindGeneralMysqlAggregatedStatsRequest) returns (FindGeneralMysqlAggregatedStatsResponse) {
+  rpc getGeneralMysqlAggregatedStats(GetGeneralMysqlAggregatedStatsRequest) returns (GetGeneralMysqlAggregatedStatsResponse) {
     option (google.api.http) = {
       get: "/v1/statistics/mysql/general"
     };
   }
 
-  // Получить общую почасовую статистику нагрузки за определенный день
-  rpc findStatsByDay(FindStatsByDayRequest) returns (FindStatsByDayResponse) {
+  // Получить подробную статистику нагрузки по конкретному сайту или mysql базе
+  rpc getDetailedLoadStats(GetDetailedLoadStatsRequest) returns (GetDetailedLoadStatsResponse) {
     option (google.api.http) = {
-      get: "/v1/statistics/by-day"
+      get: "/v1/statistics/detailed-load"
     };
   }
-
-  // Получить подробную статистику нагрузки по конкретному сайту
-  rpc findDetailedCpStats(FindDetailedSiteStatsRequest) returns (FindDetailedSiteStatsResponse) {
-    option (google.api.http) = {
-      get: "/v1/statistics/site-load/details"
-    };
-  }
-
-  // Получить подробную статистику нагрузки по конкретной базе
-  rpc findDetailedMysqlCpStats(GetDetailedMysqlStatsRequest) returns (GetDetailedMysqlStatsResponse) {
-    option (google.api.http) = {
-      get: "/v1/statistics/mysql-load/details"
-    };
-  }
-
-  // Получить общую статистику нагрузки
-  rpc getSiteLoadStats(GetSiteStatsRequest) returns (GetSiteStatsResponse) {
-    option (google.api.http) = {
-      get: "/v1/statistics/siteLoad"
-    };
-  }
-
-  // Получить статистику по средней нагрузке на сайты
-  rpc getSiteAverageLoadStats(GetSiteAverageLoadStatsRequest) returns (GetSiteAverageLoadStatsResponse) {
-    option (google.api.http) = {
-      get: "/v1/statistics/siteAverageLoad"
-    };
-  }
-
-  // Получить статистику изменения дискового пространства
-  rpc getDiskQuotaStats(GetDiskQuotaStatsRequest) returns (GetDiskQuotaStatsResponse) {
-    option (google.api.http) = {
-      get: "/v1/statistics/diskQuota"
-    };
-  }
-
-  // Получить общую статистику изменения размера mysql базы данных
-  rpc getMysqlSizeStats(GetMysqlSizeStatsRequest) returns (GetMysqlSizeStatsResponse) {
-    option (google.api.http) = {
-      get: "/v1/statistics/mysqlSize"
-    };
-  }
-
-  // Получить общую статистику нагрузки на mysql базу данных
-  rpc getMysqlLoadStats(GetMysqlLoadStatsRequest) returns (GetMysqlLoadStatsResponse) {
-    option (google.api.http) = {
-      get: "/v1/statistics/mysqlLoad"
-    };
-  }
-
 }
 
-message GetServerInfoRequest {
-}
+message GetServerInfoRequest {}
 
 message GetServerInfoResponse {
   // Средняя загрузка на сервере
@@ -139,30 +95,11 @@ message GetServerInfoResponse {
   }
 }
 
-message FindGeneralAggregatedStatsRequest {
-  // Тип статистики
-  repeated StatisticsType type = 1;
+message GetGeneralSiteAggregatedStatsRequest {}
 
-  enum StatisticsType {
-    // Нагрузка на mysql бд
-    MYSQL = 0;
-    // Нагрузка на сайты
-    SITE = 1;
-  }
-}
-
-message FindGeneralAggregatedStatsResponse {
+message GetGeneralSiteAggregatedStatsResponse {
   // Общая агрегированная статистика нагрузки на сайты
   repeated GeneralSiteStats general_site_stats = 1;
-  // Общая агрегированная статистика нагрузки на mysql
-  repeated GeneralMysqlStats general_mysql_stats = 2;
-
-  message GeneralMysqlStats {
-    // Средняя нагрузка за месяц
-    float cp = 1;
-    // Название базы
-    string name = 2;
-  }
 
   message GeneralSiteStats {
     // Средняя нагрузка за месяц
@@ -174,116 +111,94 @@ message FindGeneralAggregatedStatsResponse {
   }
 }
 
-message FindGeneralMysqlAggregatedStatsRequest {}
+message GetGeneralMysqlAggregatedStatsRequest {}
 
-message FindGeneralMysqlAggregatedStatsResponse {
+message GetGeneralMysqlAggregatedStatsResponse {
+  // Общая агрегированная статистика нагрузки на mysql
+  repeated GeneralMysqlStats general_mysql_stats = 1;
+
+  message GeneralMysqlStats {
     // Средняя нагрузка за месяц
     float cp = 1;
     // Название базы
     string name = 2;
+  }
 }
 
-message GetSiteStatsRequest {
 
+message FindStatsRequest {
+  // Тип статистики
+  StatisticType type = 1;
+
+  enum StatisticType {
+    // Нагрузка на сайты
+    SITE_LOAD = 0;
+    // Нагрузка на mysql
+    MYSQL_LOAD = 1;
+    // Средняя нагрузка на сервере
+    AVERAGE_LOAD = 2;
+    // Изменение дискового пространства
+    DISK_QUOTA = 3;
+    // Изменение размера баз данных
+    MYSQL_SIZE = 4;
+  }
+  // Дата, с которой нужно собрать статистику в формате 2022-11-25
+  string start_date = 2;
+
+  // Интервал статистики. Выводить статистику по часам или по дням
+  StatisticInterval interval = 3;
+
+  enum StatisticInterval {
+    // Неизвестен
+    UNKNOWN = 0;
+    // Час
+    HOUR = 1;
+    // День
+    DAY = 2;
+  }
 }
 
-message GetSiteStatsResponse {
-  // Данные по дням за последний месяц
-  repeated structures.StatisticsSet data = 1;
-}
+message FindStatsResponse {
+  oneof result {
+    Success success = 1;
+    Error error = 2;
+  }
 
-message GetSiteAverageLoadStatsRequest {
+  message Success {
+    // Массив со значениями
+    repeated structures.StatisticsSet data = 1;
+  }
 
-}
+  message Error {
+    // Код ошибки
+    Code code = 1;
+    // Сообщение об ошибке
+    string message = 2;
 
-message GetSiteAverageLoadStatsResponse {
-  // Данные по часам за последние сутки
-  repeated structures.StatisticsSet data = 1;
-}
+    enum Code {
+      _ = 0;
+      // Некорректный временной интервал за который собирается статистика. Например какой-то тип стат-ки не имеет данные за каждый час
+      INVALID_DATE_INTERVAL = 1;
+      // Внутренняя ошибка
+      INTERNAL_ERROR = 2;
+      // Некорректный период. Например слишком большой период, либо start_date еще даже не наступил.
+      INVALID_PERIOD = 3;
 
-message GetDiskQuotaStatsRequest {
-
-}
-
-message GetDiskQuotaStatsResponse {
-  // Данные по часам за последний месяц
-  repeated structures.StatisticsSet data = 1;
-}
-
-message GetMysqlSizeStatsRequest {
-
-}
-
-message GetMysqlSizeStatsResponse {
-  // Данные по часам за последний месяц
-  repeated structures.StatisticsSet data = 1;
-}
-
-message GetMysqlLoadStatsRequest {
-
-}
-
-message GetMysqlLoadStatsResponse {
-  // Данные по дням за последний месяц
-  repeated structures.StatisticsSet data = 1;
-}
-
-message FindStatsByDayRequest {
-  repeated SearchScope scope = 1;
-
-  message SearchScope {
-    // Тип статистики
-    StatisticType type = 1;
-    // За какой день собрать статистику. Дата в формате Y-m-d
-    // либо количество секунд, прошедших с начала эпохи Unix (1 января 1970 00:00:00 GMT) до текущего времени.
-    string date = 2;
-
-    enum StatisticType {
-      // Нагрузка на mysql бд
-      MYSQL = 0;
-      // Нагрузка на сайты
-      SITE = 1;
     }
   }
 }
 
-message FindStatsByDayResponse {
-  // Общая статистика нагрузки на mysql за определенный день
-  MysqlStat mysql_stat = 1;
-  // Общая статистика нагрузки на сайты за определенный день
-  SiteStat site_stat = 2;
-
-  message MysqlStat {
-    // Данные по часам за определенный день
-    repeated structures.StatisticsSet data = 1;
-  }
-
-  message SiteStat {
-    // Данные по часам за определенный день
-    repeated structures.StatisticsSet data = 1;
+message GetDetailedLoadStatsRequest {
+  // Идентификтор сущности для которой ищется статистика
+  oneof id {
+    uint64 site_id = 1;
+    string mysql_name = 2;
   }
 }
 
-message FindDetailedSiteStatsRequest {
-  // Id сайта
-  uint64 id = 1;
-}
-
-message FindDetailedSiteStatsResponse {
-  // Статистика нагрузки на сайт за последний месяц по дням
+message GetDetailedLoadStatsResponse {
+  // Статистика нагрузки за последний месяц по дням
   repeated structures.StatisticsSet stats_by_days = 1;
-  // Статистика нагрузки на бд за последний месяц по часам
-  repeated structures.StatisticsSet stats_by_hours = 2;
-}
-
-message GetDetailedMysqlStatsRequest {
-  // Имя бд
-  string name = 1;
-}
-
-message GetDetailedMysqlStatsResponse {
-  // Статистика нагрузки на бд за последний месяц по дням
-  repeated structures.StatisticsSet stats_by_days = 1;
-  // Статистика нагрузки на бд за последний месяц по часам
+  // Статистика нагрузки за последний месяц по часам
   repeated structures.StatisticsSet stats_by_hours = 2;
 }

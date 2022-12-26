@@ -1,0 +1,204 @@
+syntax = "proto3";
+
+package beget.statistics.v1.loadStatistics;
+import "google/api/annotations.proto";
+import "statistics/proto/v1/structures.proto";
+
+// Сервис получения статистики
+service LoadStatisticsService {
+  // Получить статистику по серверу
+  rpc getServerInfo (GetServerInfoRequest) returns (GetServerInfoResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/server-info"
+    };
+  }
+
+  // Найти статистику
+  rpc findStats(FindStatsRequest) returns (FindStatsResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics"
+    };
+  }
+
+  // Получить общую агрегированную статистику нагрузки на сайты
+  rpc getGeneralSiteAggregatedStats(GetGeneralSiteAggregatedStatsRequest) returns (GetGeneralSiteAggregatedStatsResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/site/general"
+    };
+  }
+
+  // Получить общую агрегированную статистику нагрузки на mysql базы
+  rpc getGeneralMysqlAggregatedStats(GetGeneralMysqlAggregatedStatsRequest) returns (GetGeneralMysqlAggregatedStatsResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/mysql/general"
+    };
+  }
+
+  // Получить подробную статистику нагрузки по конкретному сайту или mysql базе
+  rpc getDetailedLoadStats(GetDetailedLoadStatsRequest) returns (GetDetailedLoadStatsResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/detailed-load"
+    };
+  }
+}
+
+message GetServerInfoRequest {}
+
+message GetServerInfoResponse {
+  // Средняя загрузка на сервере
+  LoadAverage load_average = 1;
+  // Аптайм сервера
+  Uptime uptime = 2;
+  // Информация о сервере
+  Server server = 3;
+  message Server {
+    // Версия апача
+    string server_apache_version = 1;
+    // Версия процессора
+    string server_cpu_name = 2;
+    // Количество оперативной памяти
+    int64 server_memory = 3;
+    // Версия mysql
+    string server_mysql_version = 4;
+    // Имя сервера
+    string server_name = 5;
+    // Версия nginx
+    string server_nginx_version = 6;
+    // Версия perl
+    string server_perl_version = 7;
+    // Версия php
+    string server_php_version = 8;
+    // Версия python
+    string server_python_version = 9;
+  }
+
+  message Uptime {
+    // Количество секунд аптайма
+    int64 total = 1;
+    // Количество секунд в idle статусе
+    int64 idle = 2;
+  }
+
+  message LoadAverage {
+    // Среднее значение нагрузки для 1 минуты
+    float la1 = 1;
+    // Среднее значение нагрузки для 5 минут
+    float la5 = 2;
+    // Среднее значение нагрузки для 15 минут
+    float la10 = 3;
+    // Pid последнего созданного процесса на сервере
+    float last_proc = 4;
+    // Количество запущенных процессов
+    int64 running_proc = 5;
+    // Общее количество процессов
+    int64 total_proc = 6;
+  }
+}
+
+message GetGeneralSiteAggregatedStatsRequest {}
+
+message GetGeneralSiteAggregatedStatsResponse {
+  // Общая агрегированная статистика нагрузки на сайты
+  repeated GeneralSiteStats general_site_stats = 1;
+
+  message GeneralSiteStats {
+    // Средняя нагрузка за месяц
+    float cp = 1;
+    // Название сайта
+    string name = 2;
+    // Id сайта
+    uint64 id = 3;
+  }
+}
+
+message GetGeneralMysqlAggregatedStatsRequest {}
+
+message GetGeneralMysqlAggregatedStatsResponse {
+  // Общая агрегированная статистика нагрузки на mysql
+  repeated GeneralMysqlStats general_mysql_stats = 1;
+
+  message GeneralMysqlStats {
+    // Средняя нагрузка за месяц
+    float cp = 1;
+    // Название базы
+    string name = 2;
+  }
+}
+
+
+message FindStatsRequest {
+  // Тип статистики
+  StatisticType type = 1;
+
+  enum StatisticType {
+    // Нагрузка на сайты
+    SITE_LOAD = 0;
+    // Нагрузка на mysql
+    MYSQL_LOAD = 1;
+    // Средняя нагрузка на сервере
+    AVERAGE_LOAD = 2;
+    // Изменение дискового пространства
+    DISK_QUOTA = 3;
+    // Изменение размера баз данных
+    MYSQL_SIZE = 4;
+  }
+  // Дата, с которой нужно собрать статистику в формате 2022-11-25
+  string start_date = 2;
+
+  // Интервал статистики. Выводить статистику по часам или по дням
+  StatisticInterval interval = 3;
+
+  enum StatisticInterval {
+    // Неизвестен
+    UNKNOWN = 0;
+    // Час
+    HOUR = 1;
+    // День
+    DAY = 2;
+  }
+}
+
+message FindStatsResponse {
+  oneof result {
+    Success success = 1;
+    Error error = 2;
+  }
+
+  message Success {
+    // Массив со значениями
+    repeated structures.StatisticsSet data = 1;
+  }
+
+  message Error {
+    // Код ошибки
+    Code code = 1;
+    // Сообщение об ошибке
+    string message = 2;
+
+    enum Code {
+      _ = 0;
+      // Некорректный временной интервал за который собирается статистика. Например какой-то тип стат-ки не имеет данные за каждый час
+      INVALID_DATE_INTERVAL = 1;
+      // Внутренняя ошибка
+      INTERNAL_ERROR = 2;
+      // Некорректный период. Например слишком большой период, либо start_date еще даже не наступил.
+      INVALID_PERIOD = 3;
+
+    }
+  }
+}
+
+message GetDetailedLoadStatsRequest {
+  // Идентификтор сущности для которой ищется статистика
+  oneof id {
+    uint64 site_id = 1;
+    string mysql_name = 2;
+  }
+}
+
+message GetDetailedLoadStatsResponse {
+  // Статистика нагрузки за последний месяц по дням
+  repeated structures.StatisticsSet stats_by_days = 1;
+  // Статистика нагрузки за последний месяц по часам
+  repeated structures.StatisticsSet stats_by_hours = 2;
+}
